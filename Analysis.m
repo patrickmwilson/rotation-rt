@@ -9,43 +9,58 @@ warning('off','MATLAB:MKDIR:DirectoryExists');
 mkdir(fullfile(pwd,'Parameters'));
 mkdir(fullfile(pwd,'Plots'));
 
-experimentName = 'Face Horizontal Rotation RT';
-subjectName = 'PAT';
+dataAnswer = questdlg('Select the type of analysis', ...
+    'Analysis selection', 'Chi^2', 'Significance Testing', 'Chi^2');
 
-data = readCsv(experimentName, subjectName);
+if strcmp(dataAnswer,'Chi^2')
+    dataAnswer = questdlg('Run every subject (long)?', ...
+        'Data Selection', 'Yes', 'No', 'Cancel', 'Yes');
+    if strcmp(dataAnswer,'Cancel')
+        return;
+    end
+    
+    everySubject = strcmp(dataAnswer, 'Yes');
+    
+    % Input dialogue: save plots?
+    dataAnswer = questdlg('Save plots?', 'Plot Output', 'Yes', 'No', 'Cancel', ...
+        'Yes');
+    savePlots = strcmp(dataAnswer, 'Yes');
+    if strcmp(dataAnswer, 'Cancel')
+        return;
+    end
 
-i = 1;
-while i <= length(data)
-    if data(i, 4) == 0
-        data(i,:) = [];
+    % Input dialogue: save parameters?
+    dataAnswer = questdlg('Save parameters to csv?', 'Parameter Output', 'Yes', ...
+        'No', 'Cancel', 'Yes');
+    saveParams = strcmp(dataAnswer, 'Yes');
+    if strcmp(dataAnswer, 'Cancel')
+        return;
+    end
+    
+    if everySubject
+        subjects = getSubjects();
+        for i=1:length(subjects)
+            subject = subjects(i);
+            subject.saveParams = saveParams;
+            subject.savePlots = savePlots;
+            analyzeSubject(subject);
+        end
     else
-        i = i+1;
+        subject = userInput();
+        subject.saveParams = saveParams;
+        subject.savePlots = savePlots;
+        
+        analyzeSubject(subject);
+    end
+    
+else
+    infoStructFile = fullfile(pwd, 'lib', ...
+        'struct_templates', 'protocol_info');
+    info = table2struct(readtable(infoStructFile));
+    
+    for i=1:length(info)
+        disp(info(i).name);
+        rmAnovaTest(info(i));
+        disp('---------------------------');
     end
 end
-
-data(:,4) = [];
-data(:,3) = [];
-
-data = averageData(data, 1, 2);
-
-approx = polyfit(data(:,1), data(:,2), 1);
-
-chiSqPlot = figure();
-
-params = twoParamChiSq(data,experimentName,approx,chiSqPlot);
-
-linearGraph = figure();
-
-pointSlope(data,params,[0.4 0.8 0.5],linearGraph);
-
-ylabel('Reaction Time (ms)');
-xlabel('Face Orientation (°)');
-title('Reaction Time vs. Face Orientation');
-
-
-
-
-
-
-
-

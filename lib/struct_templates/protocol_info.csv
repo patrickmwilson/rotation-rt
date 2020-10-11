@@ -1,0 +1,4 @@
+name,csvName,id,negcolor,a,poscolor
+Pitch,Face Pitch Rotation RT,fp,0 0.8 0.8,a,0.86 0.27 0.07
+Yaw,Face Yaw Rotation RT,fy,0.9 0.3 0.9,a,0.5 0 0.9
+Roll,Face Roll Rotation RT,fr,1 0.6 0,a,0 0 0
