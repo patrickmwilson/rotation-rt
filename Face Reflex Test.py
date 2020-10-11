@@ -9,7 +9,7 @@ practiceTrials = 15
 breakLength = 15
 trialsBetweenBreak = 25
 referenceSize = 8
-face = (os.path.join(os.getcwd(), 'Stimulus_Pictures', 'Faces', 'calibration_face.jpg')) 
+face = (os.path.join(os.getcwd(), 'Stimuli', 'Faces', 'calibration_face.jpg')) 
 
 # Opens the csvFile and writes the output argument specified by to the file
 def csvOutput(output):
@@ -135,7 +135,7 @@ displayImage = visual.ImageStim(
     win=win,
     name='', units='cm', 
     image= face, mask=None,
-    ori=referenceOri, pos=(0, 0), size = (faceWidth,faceHeight),
+    ori=0, pos=(0, 0), size = (faceWidth,faceHeight),
     color=[1,1,1], colorSpace='rgb', opacity=1.0,
     flipHoriz=False, flipVert=False,
     texRes=128, interpolate=True, depth=-3.0) 
