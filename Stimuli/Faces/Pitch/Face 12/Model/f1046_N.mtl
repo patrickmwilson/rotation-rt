@@ -1,0 +1,15 @@
+# Produced by Dimensional Imaging OBJ exporter
+# http://www.di3d.com
+#
+#
+newmtl Material
+Ka  1 1 1
+Kd  1 1 1
+Ks  1 1 1
+d 1
+Ns 0
+illum 2
+map_Kd f1046_N.jpg
+#
+#
+# EOF

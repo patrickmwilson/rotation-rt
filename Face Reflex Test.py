@@ -5,11 +5,13 @@ import numpy as np
 import os, sys, time, random, math, csv
 
 numTrials = 100
-practiceTrials = 15
+practiceTrials = 10
 breakLength = 15
 trialsBetweenBreak = 25
 referenceSize = 8
+crossSize = 4
 face = (os.path.join(os.getcwd(), 'Stimuli', 'Faces', 'calibration_face.jpg')) 
+crossImg = os.path.join(os.getcwd(), 'Stimuli', 'cross.png')
 
 # Opens the csvFile and writes the output argument specified by to the file
 def csvOutput(output):
@@ -139,6 +141,11 @@ displayImage = visual.ImageStim(
     color=[1,1,1], colorSpace='rgb', opacity=1.0,
     flipHoriz=False, flipVert=False,
     texRes=128, interpolate=True, depth=-3.0) 
+    
+crossWidth = angleCalc(crossSize)*faceHeightMult
+crossHeight = angleCalc(crossSize)*faceWidthMult
+    
+cross = visual.ImageStim(win=win, units = 'cm', image = crossImg, size = (crossWidth, crossHeight))
 
 
 #start practice round
@@ -156,8 +163,15 @@ for i in range(10):
 for i in range(practiceTrials):
     
     win.flip()
+    time.sleep(1)
+        
+    cross.draw()
+    win.flip()
+    time.sleep(0.2)
+        
+    win.flip()
     
-    delay = random.randint(3,8)/5
+    delay = random.randint(6,16)/10
     
     time.sleep(delay)
 
@@ -188,8 +202,15 @@ for i in range(30):
 for trial in range(numTrials):
     
     win.flip()
+    time.sleep(1)
+        
+    cross.draw()
+    win.flip()
+    time.sleep(0.2)
+        
+    win.flip()
     
-    delay = random.randint(3,8)/5
+    delay = random.randint(6,16)/10
     
     time.sleep(delay)
 
