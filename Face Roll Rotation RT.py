@@ -1,17 +1,25 @@
 import psychopy
-from psychopy import gui, visual, core, event, monitors
+from psychopy import gui, visual, core, event, monitors, prefs
+prefs.hardware['audioLib'] = ['ptb', 'pyo']
+from psychopy.sound import Sound
 from psychopy.event import waitKeys
 import numpy as np  
 import os, sys, time, random, math, csv
 
 referenceSize = 8
+crossSize = 4
 referenceRotation = 0
 rotations = [-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]
-totalTrials = 300
-practiceTrials = 50
-breakLength = 30
-trialsBetweenBreak = 50
+totalTrials = 150
+initialPracticeTrials = 35
+interimPracticeTrials = 15
+trialsPerSet = 50
 trainingTime = 30
+numSets = 3
+prePracticeBreak = 10
+postPracticeBreak = 10
+
+crossImg = os.path.join(os.getcwd(), 'Stimuli', 'cross.png')
 
 #create size array
 rotation_array = list(range(0))
@@ -20,21 +28,24 @@ for rotation in rotations:
     arr = np.ones(trialsPerRotation, dtype = int)*rotation
     
     rotation_array = np.concatenate((rotation_array, arr), axis = None)
-    
+
+# Add extra rotations if rounding resulted in less than the total trials
+if len(rotation_array) < totalTrials:
+    arr = np.ones((totalTrials-len(rotation_array)), dtype = int)*0
+    rotation_array = np.concatenate((rotation_array, arr), axis = None)
+
 random.shuffle(rotation_array)
 
-    
 def getFace(showTarget, set):
     if set == 1:
-        #target = 'face13.jpg'
-        #distractors = ['face19.jpg', 'face20.jpg']
-        target = 'robb.jpg'
-        distractors = ['john snow.jpg', 'theon.jpeg']
+        target = 'face26.jpg'
+        distractors = ['face27.jpg', 'face28.jpg']
+    elif set == 2:
+        target = 'face29.jpg'
+        distractors = ['face30.jpg', 'face31.jpg']
     else:
-        #target = 'face23.jpg'
-        #distractors = ['face24.jpg', 'face25.jpg']
-        target = 'cercei.jpg'
-        distractors = ['danny.jpg', 'catlin.jpg']
+        target = 'face32.jpg'
+        distractors = ['face33.jpg', 'face34.jpg']
     
     if showTarget:
         faceNum = target 
@@ -69,7 +80,7 @@ recordData = datadlg.OK
 if recordData:
     # Store info about experiment, get date
     date = time.strftime("%m_%d")
-    expName = 'Face Roll Rotation RT Familiar'
+    expName = 'Face Roll Rotation RT'
     expInfo = {'Subject Name': ''}
     
     # Input dialogue: session type, subject code
@@ -96,12 +107,10 @@ if recordData:
 
 # gets the calibration
 tvInfo = csvInput(os.path.join(os.getcwd(),'monitor_calibration.csv')) 
-
 heightMult = float(tvInfo['height'])
 distToScreen = float(tvInfo['Distance to screen'])
 faceHeightMult = float(tvInfo['faceHeight'])
 faceWidthMult = float(tvInfo['faceWidth'])
-
 
 # Takes a value in the form of angle of visual opening and returns the 
 # equivalent value in centimeters (based upon the distToScreen variable) 
@@ -126,17 +135,10 @@ win = visual.Window(
 # Returns a displayText object with the given text, coordinates, height, color
 def genDisplay(displayInfo):
     displayText = visual.TextStim(win=win,
-    text= displayInfo['text'],
-    font='Arial',
+    text= displayInfo['text'], font='Arial',
     pos=(displayInfo['xPos'], displayInfo['yPos']),
     height=displayInfo['heightCm'],
-    wrapWidth=500,
-    ori=0, 
-    color=displayInfo['color'],
-    colorSpace='rgb',
-    opacity=1, 
-    languageStyle='LTR',
-    depth=0.0)
+    wrapWidth=500, color=displayInfo['color'])
     return displayText
 
 def instructions():
@@ -146,14 +148,12 @@ def instructions():
     genDisplay({'text': 'Press v on the keyboard if you see the correct face',\
         'xPos': 0, 'yPos': 3, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
     genDisplay({'text': 'presented in the next slide.',\
-    'xPos': 0, 'yPos': 1, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+        'xPos': 0, 'yPos': 1, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
     genDisplay({'text': 'Press n on the keyboard if you see a different face.',\
         'xPos': 0, 'yPos': -1, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
-    genDisplay({'text': 'You will have 30 seconds to memorize the correct face.',\
-        'xPos': 0, 'yPos': -3, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
-    genDisplay({'text': 'There will be a practice round before the experiment begins.',\
-        'xPos': 0, 'yPos': -5, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
-    genDisplay({'text': 'Press spacebar to continue to the next slide.',\
+    genDisplay({'text': 'A beep will play if you make an error.',\
+        'xPos': 0, 'yPos': -4, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+    genDisplay({'text': 'Press spacebar to continue.',\
         'xPos': 0, 'yPos': -7, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
     win.flip()
     key = waitKeys(keyList = ['space', 'escape'])
@@ -166,15 +166,33 @@ instructions()
 trainingHeight = angleCalc(referenceSize)*faceHeightMult
 trainingWidth = angleCalc(referenceSize)*faceWidthMult
 
-
 #display original image for 30 seconds
 displayImage = visual.ImageStim( 
     win=win, units='cm', image= getFace(1, 1), 
     size = (trainingWidth,trainingHeight),
     interpolate=True) 
 
-feedbackRect = visual.Rect(win=win, size = ((trainingWidth*1.1),(trainingHeight*1.1)), units='cm')
+crossWidth = angleCalc(crossSize)*faceHeightMult
+crossHeight = angleCalc(crossSize)*faceWidthMult
+    
+cross = visual.ImageStim(win=win, units = 'cm', image = crossImg, size = (crossWidth, crossHeight))
+    
+feedbackBeep = Sound(value='A', secs=0.5, octave=4, stereo=-1, volume=1.0)
 
+def expBreak():
+    genDisplay({'text': 'Break',\
+        'xPos': 0, 'yPos': 6, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+    genDisplay({'text': 'Take a few minutes to rest your eyes,',\
+        'xPos': 0, 'yPos': 3, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+    genDisplay({'text': 'get up and stretch',\
+        'xPos': 0, 'yPos': 1, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+    genDisplay({'text': 'Press spacebar to continue.',\
+        'xPos': 0, 'yPos': -3, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+    win.flip()
+    key = waitKeys(keyList = ['space', 'escape'])
+    if key[0] == 'escape':
+        endExp()
+    
 def learningPeriod(set):
     genDisplay({'text': ('You will have ' + str(trainingTime) + ' seconds to'),\
         'xPos': 0, 'yPos': 5, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
@@ -195,42 +213,29 @@ def learningPeriod(set):
 
     time.sleep(trainingTime)
 
-# give the subject a 30 second break and display 
-# a countdown timer on the screen
-def expBreak(set):
-    dispInfo = {'text': 'Break', 'xPos': 0, 'yPos': -6, 'heightCm': 3*heightMult, 'color': 'white'}
-    breakText = genDisplay(dispInfo)
-    dispInfo = {'text': '', 'xPos': 0, 'yPos': -10, 'heightCm': 3*heightMult, 'color': 'white'}
-    displayImage.image = getFace(1, set)
-    displayImage.ori = referenceRotation
-    for i in range(breakLength):
-        breakText.draw()
-        displayImage.draw()
-        dispInfo['text'] = str(breakLength-i) + ' seconds'
-        genDisplay(dispInfo).draw()
-        win.flip()
-        time.sleep(1)
-
-def practiceRound(set):
+def practiceRound(set, practiceTrials):
     #start practice round
     dispInfo = {'text': 'Practice round starts in:', 'xPos': 0, 'yPos': 4, 'heightCm': 3*heightMult, 'color': 'white'}
     practiceText = genDisplay(dispInfo)
     dispInfo = {'text': '', 'xPos': 0, 'yPos': -1, 'heightCm': 3*heightMult, 'color': 'white'}
-    for i in range(10):
+    for i in range(prePracticeBreak):
         practiceText.draw()
-        dispInfo['text'] = str(10-i) + ' seconds'
+        dispInfo['text'] = str(prePracticeBreak-i) + ' seconds'
         genDisplay(dispInfo).draw()
         win.flip()
         time.sleep(1)
-        
-    displayImage.ori = referenceRotation
-    feedbackRect.ori = referenceRotation
     
     for i in range(practiceTrials):
-    
+        win.flip()
+        time.sleep(1)
+        
+        cross.draw()
+        win.flip()
+        time.sleep(0.2)
+        
         win.flip()
     
-        delay = random.randint(3,8)/5
+        delay = random.randint(6,16)/10
     
         time.sleep(delay)
     
@@ -241,6 +246,7 @@ def practiceRound(set):
             correctKey = 'n'
     
         displayImage.image = getFace(showTarget, set)
+        displayImage.ori = referenceRotation
 
         displayImage.draw()
 
@@ -255,17 +261,9 @@ def practiceRound(set):
     
         response = key[0]
         
-        if response == correctKey:
-            feedbackRect.lineColor = 'lawngreen'
-            feedbackRect.fillColor = 'lawngreen'
-        else:
-            feedbackRect.lineColor = 'red'
-            feedbackRect.fillColor = 'red'
+        if response != correctKey:
+            feedbackBeep.play()
         
-        feedbackRect.draw()
-        displayImage.draw()
-        win.flip()
-        time.sleep(1)
         
     #end of practice round
     dispInfo = {'text': 'Experiment starts in:', 'xPos': 0, 'yPos': -6, 'heightCm': 3*heightMult, 'color': 'white'}
@@ -273,37 +271,51 @@ def practiceRound(set):
     displayImage.image = getFace(1, set)
     displayImage.ori = referenceRotation
     dispInfo = {'text': '', 'xPos': 0, 'yPos': -10, 'heightCm': 3*heightMult, 'color': 'white'}
-    for i in range(30):
+    for i in range(postPracticeBreak):
         endpractice2.draw()
-        dispInfo['text'] = str(30-i) + ' seconds'
+        dispInfo['text'] = str(postPracticeBreak-i) + ' seconds'
         genDisplay(dispInfo).draw()
         displayImage.draw()
         win.flip()
         time.sleep(1)
 
 set = 1
-setChanged = 0
+trialsThisSet = 0
 learningPeriod(set)
-practiceRound(set)
+practiceRound(set, initialPracticeTrials)
+secondPracticeCompleted = False
     
 trials = 0
-trialsSinceBreak = 0
 i = 0
 
 numTrials = len(rotation_array)
 
 while trials < numTrials:
     
-    if trials == int(numTrials/2) and setChanged == 0:
-        set = 2
+    # Swap to a new set of faces and run learning period and practice round
+    if trialsThisSet == trialsPerSet and set != numSets:
+        set += 1
+        trialsThisSet = 0
+        secondPracticeCompleted = False
+        expBreak()
         learningPeriod(set)
-        practiceRound(set)
-        setChanged = 1
-        trialsSinceBreak = 0
+        practiceRound(set, initialPracticeTrials)
+    
+    # Midway through each set of trials, run a shorter practice round
+    if not secondPracticeCompleted and trialsThisSet == int(trialsPerSet/2):
+        practiceRound(set, interimPracticeTrials)
+        secondPracticeCompleted = True
+    
+    win.flip()
+    time.sleep(1)
+        
+    cross.draw()
+    win.flip()
+    time.sleep(0.2)
     
     win.flip()
     
-    delay = random.randint(3,8)/5
+    delay = random.randint(6,16)/10
     
     time.sleep(delay)
 
@@ -313,7 +325,6 @@ while trials < numTrials:
 
     displayImage.image = getFace(showTarget, set)
     displayImage.ori = rotation
-    feedbackRect.ori = rotation
 
     displayImage.draw()
 
@@ -344,30 +355,17 @@ while trials < numTrials:
         correct = 1
         trials += 1
         
-        trialsSinceBreak += 1
-        
-        feedbackRect.lineColor = 'lawngreen'
-        feedbackRect.fillColor = 'lawngreen'
+        trialsThisSet += 1
     else:
         correct = 0
         rotation_array = np.append(rotation_array, rotation)
+        feedbackBeep.play()
         
-        feedbackRect.lineColor = 'red'
-        feedbackRect.fillColor = 'red'
-        
-        
-    feedbackRect.draw()
-    displayImage.draw()
-    win.flip()
-    time.sleep(1)
+    time.sleep(0.2)
     
     if recordData:
         output = [correct, rotation, reactionTime*1000, showTarget] 
         csvOutput(output)
-        
-    if trialsSinceBreak == trialsBetweenBreak and trials < numTrials and trials != int(numTrials/2):
-        expBreak(set)
-        trialsSinceBreak = 0
     
     i += 1
     

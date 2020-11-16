@@ -11,12 +11,14 @@ mkdir(fullfile(pwd,'Plots'));
 
 subjectName = string(inputdlg({'Subject name (Matching their data folder)'}, ...
             'Session Info', [1 70], {''}));
-lim = 100;
 
-info = struct('name', 'Pitch', ...
-        'csvName', 'Face Pitch Rotation RT', 'color', [0 0.8 0.8]);
+info = struct('name', NaN, 'csvName', NaN, 'color', NaN);
 
 info = repmat(info, 1, 3);
+
+info(1).name = 'Pitch';
+info(1).csvName = 'Face Pitch Rotation RT';
+info(1).color = [0 0.8 0.8];
 
 info(2).name = 'Yaw';
 info(2).csvName = 'Face Yaw Rotation RT';
@@ -26,10 +28,23 @@ info(3).name = 'Roll';
 info(3).csvName = 'Face Roll Rotation RT';
 info(3).color = [1 0.6 0];
 
+dataAnswer = questdlg('Set axis x limits', ...
+        'Data Selection', 'Automatically', 'Manually', 'Cancel', 'Automatically');
+if strcmp(dataAnswer,'Cancel')
+    return;
+elseif strcmp(dataAnswer, 'Manually')
+    lim = str2double(cell2mat(inputdlg({'x axis limits (50 for pitch only, 95 for yaw, 185 for roll'}, ...
+            'Session Info', [1 70], {''})));
+else
+    lim = 185;
+end
 
 linearGraph = figure();
 
 for i=1:length(info)
+    if i ~= 3
+        continue;
+    end
     experimentName = info(i).name;
     csvName = info(i).csvName;
     color = info(i).color;
@@ -72,10 +87,30 @@ for i=1:length(info)
     
     data(:,4) = [];
     data(:,3) = [];
+    
+    %[data, ~] = cleanAndRemoveOutliers(data);
 
     data = averageData(data, 1, 2);
 
     [negOrientation, posOrientation] = splitSizes(data, 0);
+    
+%     for j=1:length(negOrientation)
+%         negOrientation(j,1) = deg2rad(negOrientation(j,1));
+%         posOrientation(j,1) = deg2rad(posOrientation(j,1));
+%         
+%         if negOrientation(j,1) < 0
+%             negOrientation(j,1) = cos(negOrientation(j,1)) -1;
+%         else
+%             negOrientation(j,1) = 1 - cos(negOrientation(j,1));
+%         end
+%         
+%         if posOrientation(j,1) < 0
+%             posOrientation(j,1) = cos(posOrientation(j,1)) -1;
+%         else
+%             posOrientation(j,1) = 1 - cos(posOrientation(j,1));
+%         end
+%         
+%     end
 
     approx = polyfit(negOrientation(:,1), negOrientation(:,2), 1);
 
@@ -130,12 +165,20 @@ ylabel('Reaction Time (ms)');
 xlabel('Face Orientation (°)');
 title(strcat('Reaction Time vs. Face Orientation (', subjectName, ')'));
 xlim([-lim lim]);
-xticks([-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]);
+% xlim([min(negOrientation(:,1)) max(posOrientation(:,1))]);
+%xticks([-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]);
 
 legend('show', 'Location', 'best');
 
 
 
-
-
-
+% 
+% for i=1:length(xv)
+%     if xv(i) < 0
+%         disp(1 - cos(xv(i)));
+%     elseif xv(i) > 0
+%         disp(-1 + cos(xv(i)));
+%     else
+%         disp(xv(i));
+%     end
+% end

@@ -7,6 +7,10 @@ function [negSizes, posSizes] = splitSizes(data, referenceAngle)
         if data(i,1) == referenceAngle
             posSizes = [posSizes; data(i,:)];
             negSizes = [negSizes; data(i,:)];
+        elseif data(i,1) == 180
+            posSizes = [posSizes; data(i,:)];
+            data(i,1) = -180;
+            negSizes = [negSizes; data(i,:)];
         elseif data(i,1) > referenceAngle
             posSizes = [posSizes; data(i,:)];
         else

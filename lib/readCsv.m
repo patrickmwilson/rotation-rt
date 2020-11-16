@@ -80,6 +80,7 @@ function data = readCsv(experimentName,subjectName)
             thisData(:,4) = raw(:,1);
 
             % Concatenate these values with accumulated values
+            [thisData, ~] = cleanAndRemoveOutliers(thisData);
             data = [data; thisData];
         end
     end

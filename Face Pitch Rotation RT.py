@@ -10,11 +10,13 @@ referenceSize = 8
 crossSize = 4
 rotations = [-45, -30, -15, 0, 15, 30, 45]
 totalTrials = 150
-practiceTrials = 50
+initialPracticeTrials = 35
+interimPracticeTrials = 15
 trialsPerSet = 50
 trainingTime = 30
 numSets = 3
-postPracticeBreak = 15
+prePracticeBreak = 10
+postPracticeBreak = 10
 
 crossImg = os.path.join(os.getcwd(), 'Stimuli', 'cross.png')
 
@@ -25,7 +27,12 @@ for rotation in rotations:
     arr = np.ones(trialsPerRotation, dtype = int)*rotation
     
     rotation_array = np.concatenate((rotation_array, arr), axis = None)
-    
+
+# Add extra rotations if rounding resulted in less than the total trials
+if len(rotation_array) < totalTrials:
+    arr = np.ones((totalTrials-len(rotation_array)), dtype = int)*0
+    rotation_array = np.concatenate((rotation_array, arr), axis = None)
+
 random.shuffle(rotation_array)
 
 def getFace(showTarget, set, rotation):
@@ -36,15 +43,15 @@ def getFace(showTarget, set, rotation):
         target = 'Face 11'
         distractors = ['Face 10', 'Face 12']
     else:
-        target = 'Face 13'
-        distractors = ['Face 14', 'Face 15']
+        target = 'Face 14'
+        distractors = ['Face 13', 'Face 15']
     
     if showTarget:
         faceNum = target 
     else:
         faceNum = random.choice(distractors)
         
-    face = (os.path.join(os.getcwd(), 'Stimuli', 'Faces', 'Pitch', faceNum, 'Color', (str(int(rotation))+'.png')))
+    face = (os.path.join(os.getcwd(), 'Stimuli', 'Faces', 'Pitch', faceNum, 'BW', (str(int(rotation))+'.png')))
 
     return face
 
@@ -171,6 +178,20 @@ cross = visual.ImageStim(win=win, units = 'cm', image = crossImg, size = (crossW
     
 feedbackBeep = Sound(value='A', secs=0.5, octave=4, stereo=-1, volume=1.0)
 
+def expBreak():
+    genDisplay({'text': 'Break',\
+        'xPos': 0, 'yPos': 6, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+    genDisplay({'text': 'Take a few minutes to rest your eyes,',\
+        'xPos': 0, 'yPos': 3, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+    genDisplay({'text': 'get up and stretch',\
+        'xPos': 0, 'yPos': 1, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+    genDisplay({'text': 'Press spacebar to continue.',\
+        'xPos': 0, 'yPos': -3, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
+    win.flip()
+    key = waitKeys(keyList = ['space', 'escape'])
+    if key[0] == 'escape':
+        endExp()
+    
 def learningPeriod(set):
     genDisplay({'text': ('You will have ' + str(trainingTime) + ' seconds to'),\
         'xPos': 0, 'yPos': 5, 'heightCm': 1.5*heightMult, 'color': 'white'}).draw()
@@ -190,29 +211,14 @@ def learningPeriod(set):
 
     time.sleep(trainingTime)
 
-# give the subject a 30 second break and display 
-# a countdown timer on the screen
-def expBreak(set):
-    dispInfo = {'text': 'Break', 'xPos': 0, 'yPos': -6, 'heightCm': 3*heightMult, 'color': 'white'}
-    breakText = genDisplay(dispInfo)
-    dispInfo = {'text': '', 'xPos': 0, 'yPos': -10, 'heightCm': 3*heightMult, 'color': 'white'}
-    displayImage.image = getFace(1, set, 0)
-    for i in range(breakLength):
-        breakText.draw()
-        displayImage.draw()
-        dispInfo['text'] = str(breakLength-i) + ' seconds'
-        genDisplay(dispInfo).draw()
-        win.flip()
-        time.sleep(1)
-
-def practiceRound(set):
+def practiceRound(set, practiceTrials):
     #start practice round
     dispInfo = {'text': 'Practice round starts in:', 'xPos': 0, 'yPos': 4, 'heightCm': 3*heightMult, 'color': 'white'}
     practiceText = genDisplay(dispInfo)
     dispInfo = {'text': '', 'xPos': 0, 'yPos': -1, 'heightCm': 3*heightMult, 'color': 'white'}
-    for i in range(10):
+    for i in range(prePracticeBreak):
         practiceText.draw()
-        dispInfo['text'] = str(10-i) + ' seconds'
+        dispInfo['text'] = str(prePracticeBreak-i) + ' seconds'
         genDisplay(dispInfo).draw()
         win.flip()
         time.sleep(1)
@@ -272,7 +278,8 @@ def practiceRound(set):
 set = 1
 trialsThisSet = 0
 learningPeriod(set)
-practiceRound(set)
+practiceRound(set, initialPracticeTrials)
+secondPracticeCompleted = False
     
 trials = 0
 i = 0
@@ -281,11 +288,19 @@ numTrials = len(rotation_array)
 
 while trials < numTrials:
     
+    # Swap to a new set of faces and run learning period and practice round
     if trialsThisSet == trialsPerSet and set != numSets:
         set += 1
         trialsThisSet = 0
+        secondPracticeCompleted = False
+        expBreak()
         learningPeriod(set)
-        practiceRound(set)
+        practiceRound(set, initialPracticeTrials)
+    
+    # Midway through each set of trials, run a shorter practice round
+    if not secondPracticeCompleted and trialsThisSet == int(trialsPerSet/2):
+        practiceRound(set, interimPracticeTrials)
+        secondPracticeCompleted = True
     
     win.flip()
     time.sleep(1)
