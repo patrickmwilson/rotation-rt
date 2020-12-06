@@ -8,7 +8,7 @@ import os, sys, time, random, math, csv
 
 referenceSize = 8
 crossSize = 4
-rotations = [-45, -30, -15, 0, 15, 30, 45]
+rotations = [-60, -52.5, -45, -37.5, -30, -22.5, -15, -7.5, 0, 7.5, 15, 22.5, 30, 37.5, 45, 52.5, 60]
 totalTrials = 150
 initialPracticeTrials = 35
 interimPracticeTrials = 15
@@ -51,7 +51,10 @@ def getFace(showTarget, set, rotation):
     else:
         faceNum = random.choice(distractors)
         
-    face = (os.path.join(os.getcwd(), 'Stimuli', 'Faces', 'Pitch', faceNum, 'BW', (str(int(rotation))+'.png')))
+    if int(rotation) == rotation:
+        face = (os.path.join(os.getcwd(), 'Stimuli', 'Faces', 'Pitch', faceNum, 'BW', (str(int(rotation))+'.png')))
+    else:
+        face = (os.path.join(os.getcwd(), 'Stimuli', 'Faces', 'Pitch', faceNum, 'BW', (str(round(rotation, 1))+'.png')))
 
     return face
 

@@ -5,7 +5,7 @@
 % surface plot and colormap. Takes the data matrix, name, id, color of the 
 % protocol, the parameter output struct, and a figure handle as input 
 % arguments.
-function params = twoParamChiSq(data,name,approx,chiSqPlot)
+function [params, paramOutput] = twoParamChiSq(data,name,approx,side,paramOutput,chiSqPlot)
     
     % Extract x & y values from data matrix
     xvals = data(:,1)'; yvals = data(:,2)';
@@ -43,11 +43,11 @@ function params = twoParamChiSq(data,name,approx,chiSqPlot)
     reduced_chi_sq = chi_sq/(length(xvals)-2);
     disp(reduced_chi_sq);
     
-%     % Storing parameters in output struct
-%     paramOutput.(strcat(sz, '_slope')) = slope;
-%     paramOutput.(strcat(sz, '_intercept')) = intercept;
-%     paramOutput.(strcat(sz, '_chi_sq')) = chi_sq;
-%     paramOutput.(strcat(sz, '_reduced_chi_sq')) = reduced_chi_sq;
+    % Storing parameters in output struct
+    paramOutput.(strcat(name, '_', side, '_slope')) = slope;
+    paramOutput.(strcat(name, '_', side, '_intercept')) = intercept;
+    paramOutput.(strcat(name, '_', side, '_chi_sq')) = chi_sq;
+    paramOutput.(strcat(name, '_', side, '_reduced_chi_sq')) = reduced_chi_sq;
     
     % The standard error of the parameters is estimated as the parameter
     % value in both the + and - directions which results in a Chi^2 of + 1,
@@ -94,16 +94,16 @@ function params = twoParamChiSq(data,name,approx,chiSqPlot)
     chisqPlot(name, chi_sq, slope_grid, int_grid, chi_grid,...
         slope_range, int_range, chiSqPlot);
     
-%     negSlopeError = slope - negSlopeError;
-%     posSlopeError = posSlopeError - slope;
-%     
-%     paramOutput.(strcat(sz, '_slope_neg_error')) = negSlopeError;
-%     paramOutput.(strcat(sz, '_slope_pos_error')) = posSlopeError;
-%     
-%     negInterceptError = intercept - negInterceptError;
-%     posInterceptError = posInterceptError - intercept;
-%     
-%     paramOutput.(strcat(sz, '_intercept_neg_error')) = negInterceptError;
-%     paramOutput.(strcat(sz, '_intercept_pos_error')) = posInterceptError;
+    negSlopeError = slope - negSlopeError;
+    posSlopeError = posSlopeError - slope;
+    
+    paramOutput.(strcat(name, '_', side, '_slope_neg_error')) = negSlopeError;
+    paramOutput.(strcat(name, '_', side, '_slope_pos_error')) = posSlopeError;
+    
+    negInterceptError = intercept - negInterceptError;
+    posInterceptError = posInterceptError - intercept;
+    
+    paramOutput.(strcat(name, '_', side, '_intercept_neg_error')) = negInterceptError;
+    paramOutput.(strcat(name, '_', side, '_intercept_pos_error')) = posInterceptError;
 
 end

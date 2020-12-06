@@ -6,7 +6,7 @@
 % csvName, csvId, data type, subject name, and a boolean indicating whether
 % to remove small eccentricity values from crowded center as input
 % arguments. Returns the raw data, truncated data, and any outliers.
-function data = readCsv(experimentName,subjectName)
+function [data, incorrect] = readCsv(experimentName,subjectName)
     
     % Suppress warning about modified csv headers
     warning('off','MATLAB:table:ModifiedAndSavedVarnames');
@@ -39,6 +39,7 @@ function data = readCsv(experimentName,subjectName)
     end
 
     data = []; 
+    incorrect = [];
     for i=1:length(folderPaths)
         folder = folderPaths(i);
         
@@ -65,6 +66,7 @@ function data = readCsv(experimentName,subjectName)
             end
             
             thisData = [];
+            thisIncorrect = [];
             
             % Extract the data from the csv into an array
             filename = fullfile(folder, string(csvFiles(j,1)));
@@ -78,10 +80,21 @@ function data = readCsv(experimentName,subjectName)
             thisData(:,2) = raw(:,3);
             thisData(:,3) = raw(:,4);
             thisData(:,4) = raw(:,1);
-
+            
+            k = 1;
+            while k <= length(thisData)
+                if thisData(k, 4) == 0
+                    thisIncorrect = [thisIncorrect; thisData(k,:)];
+                    thisData(k,:) = [];
+                else
+                    k = k + 1;
+                end
+            end
+            
             % Concatenate these values with accumulated values
             [thisData, ~] = cleanAndRemoveOutliers(thisData);
             data = [data; thisData];
+            incorrect = [incorrect; thisIncorrect];
         end
     end
 end
