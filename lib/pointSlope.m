@@ -7,6 +7,7 @@
 function pointSlope(experimentName,data,params,color,fig)
 
     figure(fig);
+    hold on;
     
     % Extract slope and intercept values from the params array, set the
     % legend text based upon whether or not an intercept was given
@@ -25,12 +26,9 @@ function pointSlope(experimentName,data,params,color,fig)
     end
     
     xfit = linspace((min(data(:,1))*0.99), (max(data(:,1))*1.01));
-    
     yfit = (xfit*slope)+intercept;
     
     % Plot error bars
-    hold on;
-
     errorbar(data(:,1), data(:,2), data(:,3), 'vertical','.', ...
         'HandleVisibility', 'off', 'Color', [0.43 0.43 0.43], ...
         'CapSize', 0);

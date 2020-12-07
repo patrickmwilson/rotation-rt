@@ -1,172 +1,155 @@
 function analyzeSubject(subject, info)
-
+    
+    % Create struct to store fit parameters for output
     fileName = fullfile(pwd,'lib','struct_templates', ...
             'param_struct.csv');
     paramOutput = table2struct(readtable(fileName));
     paramOutput.name = subject.name;
-
-    linearGraph = figure();
-
+    
+    % Making folderpath to store plots
+    if(strcmp(subject.name,'All'))
+        folderName = fullfile(pwd, 'Plots', 'Aggregated');
+    else
+        folderName = fullfile(pwd, 'Plots', string(subject.name));
+    end
+    
+    % Setting this flag to false initially. If the subject has valid
+    % data files within their folder, will set to true. If not, this
+    % function terminates early to avoid errors
+    hasData = false;
+    
+    % Loop through each protocol and plot
     for i=1:length(info)
+        % Skip this protocol if it was not selected
         if ~info(i).include
             continue;
         end
         experimentName = info(i).name;
         csvName = info(i).csvName;
         color = info(i).color;
-
+        
+        % Read in data
         [data, incorrect] = readCsv(csvName, subject.name);
-
+        
+        % Continue to next protocol if no data was found
         if isempty(data)
             continue;
         end
-
-        negChiSqPlot = figure();
-        posChiSqPlot = figure();
-
-        mistakes = [];
-
-        mistakes(:,1) = unique(data(:,1));
-        mistakes(:,2) = zeros(length(mistakes), 1);
-
-        for j=1:length(incorrect)
-            idx = find(mistakes(:,1) == incorrect(j, 1));
-            mistakes(idx, 2) = mistakes(idx, 2) + 1;
-        end
-
-        for j=1:length(mistakes)
-            numWrong = mistakes(j,2);
-            numCorrect = length(find(data(:,1) == mistakes(j,1)));
-            
-            total = numWrong + numCorrect;
-            
-            proportionCorrect = numCorrect/(numCorrect + numWrong);
-
-            percentCorrect = proportionCorrect*100;
-            
-            serror = sqrt(proportionCorrect*((1-proportionCorrect)/total));
-            
-            mistakes(j,2) = percentCorrect;
-            mistakes(j,3) = serror*100;
-            
-        end
-
-        data(:,4) = [];
-        data(:,3) = [];
-
-        data = averageData(data, 1, 2);
-
-        [negOrientation, posOrientation] = splitSizes(data, 0);
-
-        if subject.thetaScale
-            for j=1:length(negOrientation)
-                negOrientation(j,1) = deg2rad(negOrientation(j,1));
-                posOrientation(j,1) = deg2rad(posOrientation(j,1));
-
-                if negOrientation(j,1) < 0
-                    negOrientation(j,1) = cos(negOrientation(j,1)) -1;
-                else
-                    negOrientation(j,1) = 1 - cos(negOrientation(j,1));
-                end
-
-                if posOrientation(j,1) < 0
-                    posOrientation(j,1) = cos(posOrientation(j,1)) -1;
-                else
-                    posOrientation(j,1) = 1 - cos(posOrientation(j,1));
-                end
-            end
-        end
-
-        approx = polyfit(negOrientation(:,1), negOrientation(:,2), 1);
-
-        [params, paramOutput] = twoParamChiSq(negOrientation,experimentName,approx,...
-            'neg',paramOutput,negChiSqPlot);
-
-        pointSlope(experimentName, negOrientation,params,color,linearGraph);
-
-
-        idx = find(negOrientation(:,1) == 0);
-        figure(linearGraph);
-        hold on;
-        scatter(negOrientation(idx,1), negOrientation(idx,2), 30, 'k', 'filled', ...
-            'HandleVisibility', 'off');
         
-        if subject.thetaScale
-            xlim([(min(negOrientation(:,1))-0.1) (max(posOrientation(:,1))+0.1)]);
-        else
-            xlim([(min(negOrientation(:,1))-10) (max(posOrientation(:,1))+10)]);
+        % Remove columns containing incorrect/correct and target/distractor
+        data(:,4) = []; data(:,3) = [];
+        
+        % If this point is reached, the subject had valid data. Reverse
+        % hasData flag, create folder for plot output, and create combined
+        % linear graph
+        if ~hasData
+            hasData = true;
+            mkdir(folderName);
+            mkdir(fullfile(folderName, 'TIF'));
+            linearGraph = figure();
         end
-
+        
+        % Create figures for single linear graph (one protocol only),
+        % accuracy vs. rotation plot, and Chi^2 vs. fit parameter plots
+        singleLinearGraph = figure(); accuracyPlot = figure();
+        negChiSqPlot = figure(); posChiSqPlot = figure();
+        
+        % Returns an matrix with unique rotations in column 1, response
+        % accuracy percentages in column 2, and standard errors in column 3
+        mistakes = calculateAccuracy(data, incorrect);
+        
+        % Average all reaction time measurements for each face rotation
+        data = averageData(data, 1, 2);
+        
+        % Split data into positive and negative rotations
+        [negOrientation, posOrientation] = splitSizes(data, 0);
+        
+        % If 1-cos(theta) scale was selected, convert data
+        if subject.thetaScale
+            [negOrientation, posOrientation] = convertToTheta(negOrientation, ...
+                posOrientation);
+        end
+        
+        % Estimate fit parameters for negative rotations
+        approx = polyfit(negOrientation(:,1), negOrientation(:,2), 1);
+        
+        % Calculate fit parameters for negative face rotations via Chi^2 
+        % minimization and plot Chi^2 vs. slope and intercept as a heatmap 
+        % about the minimum
+        [params, paramOutput] = twoParamChiSq(negOrientation,experimentName, ...
+            approx,'neg',paramOutput,negChiSqPlot);
+        
+        % Graph negative rotations on combined and single linear graphs
+        pointSlope(experimentName, negOrientation, params, color, ...
+            linearGraph);
+        pointSlope(experimentName, negOrientation, params, color, ...
+            singleLinearGraph);
+        
+        % Estimate fit parameters for positive rotations
         approx = polyfit(posOrientation(:,1), posOrientation(:,2), 1);
-
+        
+        % Calculate fit parameters for positive face rotations via Chi^2 
+        % minimization and plot Chi^2 vs. slope and intercept as a heatmap 
+        % about the minimum
         [params, paramOutput] = twoParamChiSq(posOrientation,experimentName,approx,...
             'pos',paramOutput,posChiSqPlot);
-
-        pointSlope(experimentName, posOrientation,params,color,linearGraph);
-
-        accuracyPlot = figure;
-        hold on;
         
-        errorbar(mistakes(:,1), mistakes(:,2), mistakes(:,3), 'vertical','.', ...
-            'HandleVisibility', 'off', 'Color', [0.43 0.43 0.43], ...
-            'CapSize', 0);
-
-%         plot(mistakes(:,1), mistakes(:,2), 'LineStyle', '-', 'Color', color, ...
-%             'DisplayName', info(i).name);
-
-        scatter(mistakes(:,1), mistakes(:,2), 30, color, 'filled', ...
-                'HandleVisibility', 'off');
-            
-%         xfit = linspace(min(mistakes(:,1)), max(mistakes(:,1)));
-%         
-%         yfit = spline(mistakes(:,1), mistakes(:,2), xfit);
-%         
-%         plot(xfit, yfit, 'LineStyle', '-', 'Color', color, ...
-%             'DisplayName', info(i).name);
-
-        [f,~,out] = fit(mistakes(:,1), mistakes(:,2), 'smoothingspline');
-        disp(out.p);
+        % Graph positive rotations on combined and single linear graphs
+        pointSlope(experimentName, posOrientation, params, color, linearGraph);
+        pointSlope(experimentName, posOrientation, params, color, ...
+            singleLinearGraph);
         
-        l = plot(f);
-        l.LineStyle = '-';
-        l.Color = color;
-        l.DisplayName = info(i).name;
-        l.LineWidth = 1;
+        % Set x axes label and limits based upon whether scale is linear or
+        % 1-cos(theta)/cos(theta)-1
+        if subject.thetaScale
+            x_label = 'Face Orientation (1-Cos(°)/Cos(°)-1)';
+            x_lim = [(min(negOrientation(:,1))-0.1) (max(posOrientation(:,1))+0.1)];
+        else
+            x_lim = [(min(negOrientation(:,1))-10) (max(posOrientation(:,1))+10)];
+            x_label = 'Face Orientation (°)';
+        end
         
-            
+        % Format individual linear graph (one protocol only)
+        formatFigure(singleLinearGraph, 'Reaction Time vs. Face Orientation', ...
+            x_label, 'Reaction Time (ms)', x_lim, [-inf inf]);
         
-        ylabel('Response Accuracy (%)');
-        xlabel('Face Orientation (°)');
-        title('Response Accuracy vs. Face Orientation');
-        xlim([(min(data(:,1))-5) (max(data(:,1))+5)]);
-
-        yticks([70, 75, 80, 85, 90, 95, 100]);
-        yticklabels({'70%', '75%', '80%', '85%', '90%', '95%', '100%'});
-
-        ylim([80 101]);
-
-        xticks(unique(data(:,1)));
+        % Plot response accuracy vs. face rotation
+        plotAccuracy(mistakes, color, info(i), subject, folderName, ...
+            accuracyPlot);
         
-        legend('show', 'Location', 'best');
-
+        % Arrays of figures & names to loop through and save/close
+        figs = [singleLinearGraph, negChiSqPlot, posChiSqPlot, ...
+                accuracyPlot];
+        figNames = ['_Linear_Fit', '_Neg_Chi_Sq', '_Pos_Chi_Sq',...
+            '_Accuracy_Plot'];
+        
+        % Loop through each plot and save as .png and .tif
+        if subject.savePlots
+            for j=1:length(figs)
+                saveFig(figs(j), subject, info(i).name, figNames(j), folderName);
+            end
+        end
+        
+        % Close figures
+        for j=1:length(figs)
+            close(figs(j));
+        end
     end
-
-    figure(linearGraph);
-
-    ylabel('Reaction Time (ms)');
-    if subject.thetaScale
-        xlabel('Face Orientation (1-Cos(°)/Cos(°)-1)');
-    else
-        xlabel('Face Orientation (°)');
-    end
-    title(strcat('Reaction Time vs. Face Orientation (', subject.name, ')'));
-    %xlim([-lim lim]);
-    % xlim([min(negOrientation(:,1)) max(posOrientation(:,1))]);
-    %xticks([-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]);
-
-    legend('show', 'Location', 'best');
     
-
+    % If the subject's data folder was empty, function returns here
+    if ~hasData
+        return;
+    end
+    
+    % Format, save, and close combined linear graph
+    formatFigure(linearGraph, 'Reaction Time vs. Face Orientation', ...
+        x_label, 'Reaction Time (ms)', x_lim, [-inf inf]);
+    if subject.savePlots
+        saveFig(linearGraph, subject, 'Combined', figNames(j), folderName);
+    end
+    close(linearGraph);
+        
+    % Print fit parameters to spreadsheet
     if subject.saveParams
         paramOutput = struct2table(paramOutput);
         fileName = fullfile(pwd, 'Parameters', 'fit_parameters.csv');
@@ -174,8 +157,7 @@ function analyzeSubject(subject, info)
             writetable(paramOutput,fileName,'WriteRowNames',true);
         else
             writetable(paramOutput,fileName,'WriteRowNames',false, ...
-                'WriteMode', 'Append')
+                'WriteMode', 'Append');
         end
     end
-
 end
