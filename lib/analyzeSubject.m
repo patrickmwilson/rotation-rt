@@ -6,6 +6,7 @@ function analyzeSubject(subject, info)
     paramOutput.name = subject.name;
 
     linearGraph = figure();
+
     for i=1:length(info)
         if ~info(i).include
             continue;
@@ -36,10 +37,18 @@ function analyzeSubject(subject, info)
         for j=1:length(mistakes)
             numWrong = mistakes(j,2);
             numCorrect = length(find(data(:,1) == mistakes(j,1)));
+            
+            total = numWrong + numCorrect;
+            
+            proportionCorrect = numCorrect/(numCorrect + numWrong);
 
-            percentCorrect = (numCorrect/(numCorrect + numWrong))*100;
-
+            percentCorrect = proportionCorrect*100;
+            
+            serror = sqrt(proportionCorrect*((1-proportionCorrect)/total));
+            
             mistakes(j,2) = percentCorrect;
+            mistakes(j,3) = serror*100;
+            
         end
 
         data(:,4) = [];
@@ -81,6 +90,12 @@ function analyzeSubject(subject, info)
         hold on;
         scatter(negOrientation(idx,1), negOrientation(idx,2), 30, 'k', 'filled', ...
             'HandleVisibility', 'off');
+        
+        if subject.thetaScale
+            xlim([(min(negOrientation(:,1))-0.1) (max(posOrientation(:,1))+0.1)]);
+        else
+            xlim([(min(negOrientation(:,1))-10) (max(posOrientation(:,1))+10)]);
+        end
 
         approx = polyfit(posOrientation(:,1), posOrientation(:,2), 1);
 
@@ -89,40 +104,51 @@ function analyzeSubject(subject, info)
 
         pointSlope(experimentName, posOrientation,params,color,linearGraph);
 
-        accuracyPlot = figure();
+        accuracyPlot = figure;
         hold on;
+        
+        errorbar(mistakes(:,1), mistakes(:,2), mistakes(:,3), 'vertical','.', ...
+            'HandleVisibility', 'off', 'Color', [0.43 0.43 0.43], ...
+            'CapSize', 0);
 
-        plot(mistakes(:,1), mistakes(:,2), 'LineStyle', '-', 'Color', [0 0.8 0.8]);
+        plot(mistakes(:,1), mistakes(:,2), 'LineStyle', '-', 'Color', color, ...
+            'DisplayName', info(i).name);
 
-        scatter(mistakes(:,1), mistakes(:,2), 30, [0 0.8 0.8], 'filled', ...
+        scatter(mistakes(:,1), mistakes(:,2), 30, color, 'filled', ...
                 'HandleVisibility','off');
-
-
+            
+        
         ylabel('Response Accuracy (%)');
         xlabel('Face Orientation (°)');
-        title(strcat('Response Accuracy vs. Face Orientation (', experimentName, ')'));
+        title('Response Accuracy vs. Face Orientation');
         xlim([(min(data(:,1))-5) (max(data(:,1))+5)]);
 
         yticks([70, 75, 80, 85, 90, 95, 100]);
         yticklabels({'70%', '75%', '80%', '85%', '90%', '95%', '100%'});
 
-        ylim([(min(mistakes(:,2))-5) 101]);
+        ylim([80 101]);
 
         xticks(unique(data(:,1)));
-
+        
+        legend('show', 'Location', 'best');
 
     end
 
     figure(linearGraph);
 
     ylabel('Reaction Time (ms)');
-    xlabel('Face Orientation (°)');
+    if subject.thetaScale
+        xlabel('Face Orientation (1-Cos(°)/Cos(°)-1)');
+    else
+        xlabel('Face Orientation (°)');
+    end
     title(strcat('Reaction Time vs. Face Orientation (', subject.name, ')'));
     %xlim([-lim lim]);
     % xlim([min(negOrientation(:,1)) max(posOrientation(:,1))]);
     %xticks([-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]);
 
     legend('show', 'Location', 'best');
+    
 
     if subject.saveParams
         paramOutput = struct2table(paramOutput);

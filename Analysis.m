@@ -38,17 +38,6 @@ if strcmp(dataAnswer,'Chi^2')
     info(2).include = CHECKBOXES(2);
     info(3).include = CHECKBOXES(3);
 
-    dataAnswer = questdlg('Set axis x limits', ...
-            'Data Selection', 'Automatically', 'Manually', 'Cancel', 'Automatically');
-    if strcmp(dataAnswer,'Cancel')
-        return;
-    elseif strcmp(dataAnswer, 'Manually')
-        lim = str2double(cell2mat(inputdlg({'x axis limits (50 for pitch only, 95 for yaw, 185 for roll'}, ...
-                'Session Info', [1 70], {''})));
-    else
-        lim = 185;
-    end
-
     dataAnswer = questdlg('Linear scale or 1-cos(theta)', ...
             'Data Selection', 'Linear', 'cos(theta)', 'Cancel', 'Linear');
     if strcmp(dataAnswer,'Cancel')
