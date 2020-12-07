@@ -111,11 +111,28 @@ function analyzeSubject(subject, info)
             'HandleVisibility', 'off', 'Color', [0.43 0.43 0.43], ...
             'CapSize', 0);
 
-        plot(mistakes(:,1), mistakes(:,2), 'LineStyle', '-', 'Color', color, ...
-            'DisplayName', info(i).name);
+%         plot(mistakes(:,1), mistakes(:,2), 'LineStyle', '-', 'Color', color, ...
+%             'DisplayName', info(i).name);
 
         scatter(mistakes(:,1), mistakes(:,2), 30, color, 'filled', ...
-                'HandleVisibility','off');
+                'HandleVisibility', 'off');
+            
+%         xfit = linspace(min(mistakes(:,1)), max(mistakes(:,1)));
+%         
+%         yfit = spline(mistakes(:,1), mistakes(:,2), xfit);
+%         
+%         plot(xfit, yfit, 'LineStyle', '-', 'Color', color, ...
+%             'DisplayName', info(i).name);
+
+        [f,~,out] = fit(mistakes(:,1), mistakes(:,2), 'smoothingspline');
+        disp(out.p);
+        
+        l = plot(f);
+        l.LineStyle = '-';
+        l.Color = color;
+        l.DisplayName = info(i).name;
+        l.LineWidth = 1;
+        
             
         
         ylabel('Response Accuracy (%)');
