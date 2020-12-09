@@ -5,6 +5,7 @@
 % Returns complete = true if all values on the edges of the grid are less
 % than the target. Otherwise, incrementally adjusts the range of x or y
 % values and returns complete = false
+%
 function [slope_range,int_range,complete] = checkGrid(chi_grid,slope_range,int_range,target)
     complete = true;
         

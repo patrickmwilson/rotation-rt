@@ -1,6 +1,6 @@
 function subjects = getSubjects()
 
-    subjects = struct('name', 'All', 'includeAll', true);
+    subjects = struct('name', 'Aggregated');
 
     folders = dir(fullfile(pwd, 'Data'));
 

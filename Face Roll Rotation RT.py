@@ -9,7 +9,7 @@ import os, sys, time, random, math, csv
 referenceSize = 8
 crossSize = 4
 referenceRotation = 0
-rotations = [-90, -75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75, 90]
+rotations = [-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150, 180]
 totalTrials = 150
 initialPracticeTrials = 35
 interimPracticeTrials = 15

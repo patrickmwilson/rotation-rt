@@ -1,9 +1,10 @@
-% pointSlope
+% pointSlope.m
 %
 % Creates a scatterplot with a regression line. Accepts a data matrix, fit
 % parameters, protocol name, color, the error bar direction, and a figure
 % handle as input arguments. Scatters the data, the first column as x
 % values and the second as y values.
+%
 function pointSlope(experimentName,data,params,color,fig)
 
     figure(fig);

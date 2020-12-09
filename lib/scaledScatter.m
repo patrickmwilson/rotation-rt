@@ -1,14 +1,17 @@
-% scaledScatter
+% scaledScatter.m
 %
 % Scatters data with dot size proportional to number of duplicate
 % observations. Accepts a figure, a matrix containing x-values in column 1 
 % and y-values in column 2, color, initial dot size, and dot size increment
 % as input arguments. Scatters the data, then recursively scatters any 
 % duplicate data with an increasing dot size.
-function scaledScatter(plot, rawData, color, dotSize, dotSizeIncrement)
+%
+function scaledScatter(fig, rawData, color, dotSize, dotSizeIncrement)
 
-    figure(plot);
+    figure(fig);
+    hold on;
     
+    % Rounding x and y columns to ensure equality
     data(:,1) = round(rawData(:,1),2);
     data(:,2) = round(rawData(:,2),2);
     
@@ -24,7 +27,7 @@ function scaledScatter(plot, rawData, color, dotSize, dotSizeIncrement)
     % If there were duplicate x-y pairs, function is called again to
     % scatter the duplicate points with a larger dot size 
     if(size(dupes,1) > 0)
-        scaledScatter(plot,dupes,color,(dotSize+dotSizeIncrement),dotSizeIncrement);
+        scaledScatter(fig,dupes,color,(dotSize+dotSizeIncrement),dotSizeIncrement);
     end
     
 end

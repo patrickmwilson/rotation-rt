@@ -5,6 +5,7 @@
 % global variables can be tricky to work with. These were used here to avoid 
 % issues with transferring variables from the figure's workspace to the base 
 % workspace.
+%
 function ButtonUI(info)
     global CHECKBOXES;
     CHECKBOXES = ones(length(info));

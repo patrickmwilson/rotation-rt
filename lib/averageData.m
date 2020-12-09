@@ -1,10 +1,11 @@
-% avgData
+% averageData.m
 %
 % Takes a vertical matrix of data and the discrete column (usually the
 % independent variable/measurement) as arguments. Calculates the mean and
 % the standard error of the distribution of observations at each unique
 % measurement. Returns a shortened matrix, with the standard errors in the
 % third column.
+%
 function avgData = averageData(data, discreteCol, avgCol)
     
     % Get all the unique values in the discrete column, loop through

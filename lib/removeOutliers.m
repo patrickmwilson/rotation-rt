@@ -1,10 +1,11 @@
-% removeOutliers
+% removeOutliers.m
 %
 % Recursively truncates a distribution, removing any value greater than 
 % +/- the specified sigma value from the mean. Accepts a matrix, a cutoff 
 % sigma, and the column of interest as input. Recursively computes the 
 % Z-score of the column of interest and removes row elements that have a 
 % Z-score higher than the cutoff. 
+%
 function [newData,outliers] = removeOutliers(data, outliers, cutOff, columnOfInterest)
     
     % Compute Z-score of the column of interest and store it in a new

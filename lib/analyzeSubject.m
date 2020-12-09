@@ -1,3 +1,16 @@
+% analyzeSubject.m
+%
+% Contains the main analysis logic. Takes subject and info structs as input
+% arguments. Reads in data for selected experiments and performs Chi^2
+% minimization and plotting. 
+% 
+% Produces several plots: combined linear plot
+% with all protocols graphed on it, individual linear plots for each
+% protocol, graphs of Chi^2 vs. slope and intercept parameters for both
+% negative and positive rotations, and a plot of response accuracy vs.
+% rotation for each protocol. Saves these plots as .png and .tif, and
+% outputs the fit parameters to a spreadsheet.
+%
 function analyzeSubject(subject, info)
     
     % Create struct to store fit parameters for output
@@ -7,8 +20,9 @@ function analyzeSubject(subject, info)
     paramOutput.name = subject.name;
     
     % Making folderpath to store plots
-    if(strcmp(subject.name,'All'))
-        folderName = fullfile(pwd, 'Plots', 'Aggregated');
+    if subject.thetaScale
+        folderName = fullfile(pwd, 'Plots', string(subject.name), ...
+            'ThetaScale');
     else
         folderName = fullfile(pwd, 'Plots', string(subject.name));
     end
@@ -21,9 +35,9 @@ function analyzeSubject(subject, info)
     % Loop through each protocol and plot
     for i=1:length(info)
         % Skip this protocol if it was not selected
-        if ~info(i).include
-            continue;
-        end
+        if ~info(i).include, continue; end
+        
+        % Get information about current experiment from info struct
         experimentName = info(i).name;
         csvName = info(i).csvName;
         color = info(i).color;
@@ -32,9 +46,7 @@ function analyzeSubject(subject, info)
         [data, incorrect] = readCsv(csvName, subject.name);
         
         % Continue to next protocol if no data was found
-        if isempty(data)
-            continue;
-        end
+        if isempty(data), continue; end
         
         % Remove columns containing incorrect/correct and target/distractor
         data(:,4) = []; data(:,3) = [];
@@ -62,50 +74,56 @@ function analyzeSubject(subject, info)
         data = averageData(data, 1, 2);
         
         % Split data into positive and negative rotations
-        [negOrientation, posOrientation] = splitSizes(data, 0);
+        [negRotations, posRotations] = splitRotations(data, 0);
         
         % If 1-cos(theta) scale was selected, convert data
         if subject.thetaScale
-            [negOrientation, posOrientation] = convertToTheta(negOrientation, ...
-                posOrientation);
+            [negRotations, posRotations] = convertToTheta(negRotations, ...
+                posRotations);
         end
         
+        % ----------------------------------------------------------------
+        % ----------- Fit and graph negative rotations -------------------
+        
         % Estimate fit parameters for negative rotations
-        approx = polyfit(negOrientation(:,1), negOrientation(:,2), 1);
+        approx = polyfit(negRotations(:,1), negRotations(:,2), 1);
         
         % Calculate fit parameters for negative face rotations via Chi^2 
         % minimization and plot Chi^2 vs. slope and intercept as a heatmap 
         % about the minimum
-        [params, paramOutput] = twoParamChiSq(negOrientation,experimentName, ...
+        [params, paramOutput] = twoParamChiSq(negRotations,experimentName, ...
             approx,'neg',paramOutput,negChiSqPlot);
         
         % Graph negative rotations on combined and single linear graphs
-        pointSlope(experimentName, negOrientation, params, color, ...
+        pointSlope(experimentName, negRotations, params, color, ...
             linearGraph);
-        pointSlope(experimentName, negOrientation, params, color, ...
+        pointSlope(experimentName, negRotations, params, color, ...
             singleLinearGraph);
         
+        % ----------------------------------------------------------------
+        % ----------- Fit and graph positive rotations -------------------
+        
         % Estimate fit parameters for positive rotations
-        approx = polyfit(posOrientation(:,1), posOrientation(:,2), 1);
+        approx = polyfit(posRotations(:,1), posRotations(:,2), 1);
         
         % Calculate fit parameters for positive face rotations via Chi^2 
         % minimization and plot Chi^2 vs. slope and intercept as a heatmap 
         % about the minimum
-        [params, paramOutput] = twoParamChiSq(posOrientation,experimentName,approx,...
+        [params, paramOutput] = twoParamChiSq(posRotations,experimentName,approx,...
             'pos',paramOutput,posChiSqPlot);
         
         % Graph positive rotations on combined and single linear graphs
-        pointSlope(experimentName, posOrientation, params, color, linearGraph);
-        pointSlope(experimentName, posOrientation, params, color, ...
+        pointSlope(experimentName, posRotations, params, color, linearGraph);
+        pointSlope(experimentName, posRotations, params, color, ...
             singleLinearGraph);
         
         % Set x axes label and limits based upon whether scale is linear or
         % 1-cos(theta)/cos(theta)-1
         if subject.thetaScale
             x_label = 'Face Orientation (1-Cos(°)/Cos(°)-1)';
-            x_lim = [(min(negOrientation(:,1))-0.1) (max(posOrientation(:,1))+0.1)];
+            x_lim = [(min(negRotations(:,1))-0.1) (max(posRotations(:,1))+0.1)];
         else
-            x_lim = [(min(negOrientation(:,1))-10) (max(posOrientation(:,1))+10)];
+            x_lim = [(min(negRotations(:,1))-10) (max(posRotations(:,1))+10)];
             x_label = 'Face Orientation (°)';
         end
         
@@ -114,14 +132,17 @@ function analyzeSubject(subject, info)
             x_label, 'Reaction Time (ms)', x_lim, [-inf inf]);
         
         % Plot response accuracy vs. face rotation
-        plotAccuracy(mistakes, color, info(i), subject, folderName, ...
-            accuracyPlot);
+        plotAccuracy(mistakes, color, info(i), accuracyPlot);
+        
+        % ----------------------------------------------------------------
+        % ------- Saving all figures except combined linear --------------
         
         % Arrays of figures & names to loop through and save/close
         figs = [singleLinearGraph, negChiSqPlot, posChiSqPlot, ...
                 accuracyPlot];
-        figNames = ['_Linear_Fit', '_Neg_Chi_Sq', '_Pos_Chi_Sq',...
-            '_Accuracy_Plot'];
+%         figNames = ['_Linear_Fit', '_Neg_Chi_Sq', '_Pos_Chi_Sq',...
+%             '_Accuracy_Plot'];
+        figNames = ["Linear", "Neg_ChiSq", "Pos_ChiSq","Accuracy"];
         
         % Loop through each plot and save as .png and .tif
         if subject.savePlots
@@ -137,27 +158,24 @@ function analyzeSubject(subject, info)
     end
     
     % If the subject's data folder was empty, function returns here
-    if ~hasData
-        return;
-    end
+    if ~hasData, return; end
+    
+    % ----------------------------------------------------------------
+    % ------- Saving and formatting combined linear graph ------------
     
     % Format, save, and close combined linear graph
     formatFigure(linearGraph, 'Reaction Time vs. Face Orientation', ...
         x_label, 'Reaction Time (ms)', x_lim, [-inf inf]);
     if subject.savePlots
-        saveFig(linearGraph, subject, 'Combined', figNames(j), folderName);
+        saveFig(linearGraph, subject, "Combined", "Linear", folderName);
     end
     close(linearGraph);
+    
+    % ----------------------------------------------------------------
+    % ----------- Writing fit parameters to spreadsheet --------------
         
     % Print fit parameters to spreadsheet
     if subject.saveParams
-        paramOutput = struct2table(paramOutput);
-        fileName = fullfile(pwd, 'Parameters', 'fit_parameters.csv');
-        if(exist(fileName, 'file') ~= 2) % If file does not exist, print column names
-            writetable(paramOutput,fileName,'WriteRowNames',true);
-        else
-            writetable(paramOutput,fileName,'WriteRowNames',false, ...
-                'WriteMode', 'Append');
-        end
+        printFitParameters(subject, paramOutput);
     end
 end

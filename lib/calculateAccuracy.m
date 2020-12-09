@@ -4,7 +4,8 @@ function mistakes = calculateAccuracy(data, incorrect)
     mistakes(:,1) = unique(data(:,1));
     mistakes(:,2) = zeros(length(mistakes), 1);
 
-    for j=1:length(incorrect)
+%     for j=1:length(incorrect)
+    for j=1:size(incorrect, 1)
         idx = find(mistakes(:,1) == incorrect(j, 1));
         mistakes(idx, 2) = mistakes(idx, 2) + 1;
     end
