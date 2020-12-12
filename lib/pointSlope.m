@@ -7,8 +7,7 @@
 %
 function pointSlope(experimentName,data,params,color,fig)
 
-    figure(fig);
-    hold on;
+    figure(fig); hold on;
     
     % Extract slope and intercept values from the params array, set the
     % legend text based upon whether or not an intercept was given
@@ -26,6 +25,7 @@ function pointSlope(experimentName,data,params,color,fig)
         end
     end
     
+    % Calculate line points to plot
     xfit = linspace((min(data(:,1))*0.99), (max(data(:,1))*1.01));
     yfit = (xfit*slope)+intercept;
     
@@ -34,7 +34,8 @@ function pointSlope(experimentName,data,params,color,fig)
         'HandleVisibility', 'off', 'Color', [0.43 0.43 0.43], ...
         'CapSize', 0);
     
-    % Plot fit line
+    % Plot fit line. Only adds an entry to the legend for positive
+    % rotations, so that each experiment only appears once in legend
     if intercept == 0
         plot(xfit, yfit, 'Color', color, 'LineWidth', 1, 'DisplayName', ...
             sprintf(txt, experimentName, slope));

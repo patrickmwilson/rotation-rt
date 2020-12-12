@@ -77,6 +77,7 @@ function [params, paramOutput] = twoParamChiSq(data,name,approx,side,paramOutput
     
     
     % Generate a grid of slope, intercept, and Chi^2 values to be plotted
+    counter = 0;
     complete = false;
     while(~complete)
         % Generate the grids
@@ -89,6 +90,13 @@ function [params, paramOutput] = twoParamChiSq(data,name,approx,side,paramOutput
         % greater than the minimum + 4
         [slope_range,int_range,complete] = checkGrid(chi_grid, ...
             slope_range, int_range, (chi_sq+4));
+        
+        % Avoiding infinite loop that happens with some data. Heatmap is
+        % unimportant for individual subjects
+        counter = counter + 1;
+        if counter > 500
+            complete = true;
+        end
     end
     
     chisqPlot(name, chi_sq, slope_grid, int_grid, chi_grid,...

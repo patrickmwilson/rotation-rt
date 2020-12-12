@@ -1,3 +1,5 @@
+% createInfoStruct.m
+%
 % Create a struct to store information about each experiment
 % (experiment name, csv name, plot color) and trigger user input prompt
 % to determine which experiments to plot

@@ -1,3 +1,8 @@
+% chisqPlot.m
+%
+% Graphs a heatmap of Chi^2 vs. the value of the slope and intercept
+% parameters.
+%
 function chisqPlot(experiment, chi_sq, slope_grid, int_grid, chi_grid, slope_range, int_range, fig)
 
     % -------- Plot Chi^2 vs. slope and intercept as colormap -------------
@@ -14,13 +19,15 @@ function chisqPlot(experiment, chi_sq, slope_grid, int_grid, chi_grid, slope_ran
         'ShowText','off', 'LineColor', 'w', 'LineWidth', 1.2, ...
         'HandleVisibility', 'off');
     
-    % Rotate figure view so surface plot becomes 2d
+    % Rotate figure view so surface plot becomes 2d, plot heatmap
     set(h, 'edgecolor','none');
     view(ax,[0,90]);
     colormap(parula);
     
+    % Text formatting for greek Chi
     chisqtext = "\chi^{2}";
     
+    % Adding and formatting color bar
     ccb = colorbar;
     ccb.Label.String = chisqtext;
     pos = get(ccb.Label,'Position');
