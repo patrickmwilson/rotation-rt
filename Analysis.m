@@ -51,6 +51,6 @@ if strcmp(dataAnswer,'Chi^2')
         analyzeSubject(subject, info);
     end
 else
-    % TODO: Correlation and Significance testing implementation
+    correlationAnalysis();
 end
 
